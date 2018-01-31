@@ -1,0 +1,189 @@
+---
+title: "Capstone Project - Exploratory Analysis"
+author: "VN"
+date: "December 25, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+This report has been prepared for submission as part of the Capstone project - exploratory analysis. The data provided as part of the assignment has been loaded and exploratory analysis completed. The process of  completing these and next steps are captured in later sections.  
+
+## Data Load and sampling    
+```{r, echo=TRUE, warning=FALSE, comment=FALSE,message=FALSE}
+## set directory and load libraries
+setwd("C:/Coursera/CStn/Data")
+
+library(tm)
+library(tm.plugin.mail)
+library(SnowballC)
+library(tokenizers)
+library(wordcloud)
+library(RColorBrewer)
+library(RWeka)
+
+## read data files
+blogs<-file("./en_US/en_US.blogs.txt","r")
+blogs_lines<-readLines(blogs)
+close(blogs)
+
+news<-file("./en_US/en_US.news.txt","r")
+news_lines<-readLines(news)
+close(news)
+
+twitter<-file("./en_US/en_US.twitter.txt","r")
+twitter_lines<-readLines(twitter)
+close(twitter)
+
+profanity<-file("./profanity.txt","r")
+profanity_lines<-readLines(twitter)
+close(profanity)
+
+## get lines in data file
+lenblogs<-length(blogs_lines)
+lennews<-length(news_lines)
+lentwit<-length(twitter_lines)
+
+cntblogs<-floor(lenblogs*0.05)
+cntnews<-floor(lennews*0.05)
+cnttwit<-floor(lentwit*0.05)
+
+## sample 5% of the data from the 3 sets
+set.seed(1236)
+blogs_lines<-blogs_lines[rbinom(cntblogs,lenblogs,0.5)]
+news_lines<-news_lines[rbinom(cntnews,lennews,0.5)]
+twitter_lines<-twitter_lines[rbinom(cnttwit,lentwit,0.5)]
+
+
+```
+
+The data provided in the assignments consists of text from blogs, newsgroups & twitter. 5% of the data provided for english language set has been sampled and exploratory analysis completed.    
+
+Data size as line counts  sampling *(in bracket)* and total by type :    
+ 
+- blogs   (`r round(cntblogs,0)` ) `r   lenblogs`   
+- news    (`r round(cntnews,0)` ) `r   lennews`   
+- twitter (`r round(cnttwit,0)` ) `r  lentwit`   
+
+## Data Cleansing
+The sampled lines have been merged and loaded into the Corpus object in "tm". There after utilities in tm have been used to cleanse the data - strip white space, to lower, remove numbers and punctuation etc.   
+
+```{r, echo=TRUE, warning=FALSE, comment=FALSE}
+## merge lines
+sampleLines<-paste(c(blogs_lines,news_lines,twitter_lines),collapse = " ")
+
+## create corporus
+doc_vector <- VectorSource(sampleLines)
+dcorpus <- VCorpus(doc_vector)
+
+## cleanse data
+removelan<- function(x) iconv(x, "UTF-8", "ASCII", sub="")
+removeURL <- function(x) gsub("http[[:alnum:]]*", "", x) 
+
+dcorpus=tm_map(dcorpus,stripWhitespace)
+dcorpus=tm_map(dcorpus,content_transformer(tolower))
+dcorpus=tm_map(dcorpus,removeWords,stopwords("en"))
+dcorpus=tm_map(dcorpus,removePunctuation)
+dcorpus=tm_map(dcorpus,removeNumbers)
+dcorpus=tm_map(dcorpus,content_transformer(removeURL))
+dcorpus=tm_map(dcorpus,content_transformer(removelan))
+dcorpus=tm_map(dcorpus,stemDocument)
+dcorpus=tm_map(dcorpus,PlainTextDocument)
+
+```
+
+## Compute Word Frequency    
+The final corpus object is used to prepare the unigram view using TermDocumentMatrix(TDM). 
+
+
+```{r, echo=TRUE, warning=FALSE, comment=FALSE, message=FALSE}
+## Helper functions
+#Tokenizer functions
+bigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=2, max=2))
+trigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=3, max=3))
+quadgramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=4, max=4))
+
+#Word/phrase count function
+freq_df <- function(tdm){
+  # Helper function to tabulate frequency
+  freq <- sort(rowSums(as.matrix(tdm)), decreasing=TRUE)
+  freq_df <- data.frame(word=names(freq), freq=freq)
+  return(freq_df[1:25,])
+}
+
+
+## creating n-grams
+## uni
+tdm.uni <- TermDocumentMatrix(dcorpus)
+tdm.uni <- removeSparseTerms(tdm.uni, 0.99)
+tdm.uni.freq <- freq_df(tdm.uni)
+## bi - loaded from workspace later
+##tdm.bi <- TermDocumentMatrix(dcorpus, control=list(tokenize=bigramTokenizer))
+##tdm.bi <- removeSparseTerms(tdm.bi, 0.999)
+##tdm.bi.freq <- freq_df(tdm.bi)
+## tri
+##tdm.tri <- TermDocumentMatrix(dcorpus, control=list(tokenize=trigramTokenizer))
+##tdm.tri <- removeSparseTerms(tdm.tri, 0.999)
+##tdm.tri.freq <- freq_df(tdm.tri)
+
+```
+### Visualize top phrases   
+The top 25 phrases in uni, bi and trigrams have been presented as bar plots using plotly below.   
+
+```{r, echo=TRUE, warning=FALSE, comment=FALSE, message=FALSE}
+
+library(plotly)
+## plot unigram
+p1<-plot_ly(tdm.uni.freq, type="bar",x=tdm.uni.freq$word,y=tdm.uni.freq$freq)
+layout(p1, title = "Top 25 words", yaxis = list(title = "Word Counts"))
+
+
+```
+
+## Word Cloud    
+The wordcloud package has been used to present the word usage from the corpus created in tm   
+```{r, echo=TRUE, warning=FALSE, comment=FALSE}
+
+set.seed(1123)  
+wordcloud(dcorpus, min.freq=1000, scale=c(5, .1), colors=brewer.pal(6, "Dark2"))
+```
+
+## Plots for bigram and trigram   
+The bigram and trigram models were prepared during exploratory analysis. The same was saved as R Workspace and has been loaded and plotted using plotly.    
+
+```{r, echo=TRUE, warning=FALSE, comment=FALSE, message=FALSE}
+##load models from R Workspace
+load(file= "./tdm_bi.RData")
+load(file= "./tdm.tri.RData")
+tdm.bi <- removeSparseTerms(tdm.bi, 0.999)
+tdm.bi.freq <- freq_df(tdm.bi)
+tdm.tri <- removeSparseTerms(tdm.tri, 0.999)
+tdm.tri.freq <- freq_df(tdm.tri)
+
+## margin for plot
+m <- list(
+  l = 50,
+  r = 50,
+  b = 100,
+  t = 100,
+  pad = 4
+)
+## plot bigram
+p2<-plot_ly(tdm.bi.freq, type="bar",x=tdm.bi.freq$word,y=tdm.bi.freq$freq)
+layout(p2, title = "Top 25 bi words", yaxis = list(title = "Word Counts"), margin=m)
+
+## plot trigram
+p3<-plot_ly(tdm.tri.freq, type="bar",x=tdm.tri.freq$word,y=tdm.tri.freq$freq)
+layout(p3, title = "Top 25 tri words", yaxis = list(title = "Word Counts"), margin=m)
+```
+
+## Next steps     
+Having completed the exploratory analysis, the next step is to build a predictive model and prepare Shiny app which would leverage the model to predict the next word    
+
+The predictive model would use the ngrams prepared above for predicting the next word. The approach would be to start with trigram for matches and move to bi / uni gram if there are no matches
+
+The Shiny app would have a text box to capture user input. The predictive model prepared above would be leveraged to output the next word in the app.
+
