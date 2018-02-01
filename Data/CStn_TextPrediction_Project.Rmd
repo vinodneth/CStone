@@ -1,15 +1,21 @@
 ---
-title: 'Coursera : Capstone Project - Text Prediction'
-author: "VN"
-date: "January 28, 2018"
-output:
-  slidy_presentation: default
-  ioslides_presentation: default
+title       : Coursera - Capstone Project
+subtitle    : Text Prediction
+author      : VN
+job         : 
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
 ---
+<style>
+.ninety {
+   font-size: 90%;
+}
+</style>
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-```
 
 # Overview
 
@@ -19,21 +25,23 @@ The assignment consists of the below two deliverables :
 
 - (A) Shiny App which takes text as input and predicts the next word    
 - (B) Presentation of 5 slides (using R Studio Presenter) covering algorithm and how to use the app          
-This presentation addresses deliverable (B).         
+This presentation addresses deliverable (B).      
 
-# Prediction Model & Algorithm   
+Model has been prepared from 10% of the sample data set provided (SwiftKey) across blog, news and twitter feeds    
 
-##Model   
-- 10% sample of Data set provided as part of course (SwiftKey) used to prepare the model   
-- Data across blog, news and twitter types pre processed (remove numbers, punctuation, non english etc.)    
-- Ngram models (uni, bi & tri) prepared using R packages which provides the tokens (sequence of words) and frequency        
+
+--- .class #id 
+
+
+**Model**   
+- Ngram (uni, bi & tri) built using R packages which provides -  tokens  &  frequency        
 - Prepare model from NGram with the following :  
-     -  context (token without last word - would be matched with the input text)    
+     -  context (token without last word - to be matched with the input text in prediction)    
      -  word (last word of the token - would be returned as predicted word)    
      -  ngram (1/2/3 to indicate uni, bi or tri gram)    
-     -  probability (using  back off)    
-
-##Algorithm     
+     -  probability (frequency for word & context / frequency for context)     
+     
+**Algorithm**    
 - Pre-process input string using same steps as in model preparation    
 - Match starting with NGram = 3 and go down to 1. Limit to 3 entries with highest probability        
     - NGram = 3 : last two words from input text ==  context, sort by probability    
@@ -41,12 +49,16 @@ This presentation addresses deliverable (B).
     - NGram = 1 : pick top 3 words (context is NULL), sorted by probability        
 - Return the list of word matched by above logic. Maximum of 3 entries would only be shown   
 
+--- .class #id 
+
 # Shiny App    
 The shiny app UI and usage detailed below :     
 ![](ShinyAppImg.png)
 
-ShinyApp available at <http://rstudio.com>    
+ShinyApp available at <https://vnet.shinyapps.io/predictnxtword/>    
 
+
+--- .class #id 
 
 # Points noted  
 
@@ -62,5 +74,5 @@ For details lookup the versions of the NGram function included in git
 
 - SwiftKey data set shared as part of the course receivables    
 - Script repository <https://github.com/vinodneth/CStone>     
-- Shiny App available at <https:// >    
+- Shiny App available at <https://vnet.shinyapps.io/predictnxtword/>    
 
